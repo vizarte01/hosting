@@ -64,7 +64,7 @@
         
         .tool-btn {
             height: 40px;
-            border: 1px solid #333;
+            border: 1px solid #555;
             border-radius: 5px;
             display: flex;
             align-items: center;
@@ -88,25 +88,30 @@
             grid-column: span 2;
         }
         
-        .wall { background-color: #333333; color: white; }
+        /* CAMBIO 1: Bordes gris oscuro (#666) */
+        .wall { background-color: #666666; color: white; }
         .enemy { background-color: #ff0000; color: white; }
         .bullet { background-color: #ffff00; }
         .health { background-color: #00ff00; }
+        
+        /* CAMBIO 2: Cuadrícula azul para el player */
         .player { 
-            background-color: rgba(0, 0, 255, 0.3);
+            background-color:rgba(0,0,255,0.8);
+            background-size: 20px 20px;
             border: 2px solid blue;
-            z-index: 1; /* Asegurar que el jugador esté sobre las celdas de borde */
+            z-index: 5;
         }
+        
         .border-wall { 
-            opacity: 0; /* Hacerlas transparentes en lugar de ocultarlas */
-            pointer-events: none; /* No interactuar con ellas */
+            opacity: 0;
+            pointer-events: none;
         }
         
         .map-wrapper {
             flex: 1;
             position: relative;
             overflow: hidden;
-            border: 1px solid #333;
+            border: 1px solid #555;
             background-color: #e0e0e0;
             border-radius: 5px;
             min-width: 0;
@@ -134,14 +139,14 @@
         }
         
         .cell {
-            border: 1px solid rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(0, 0, 0, 0.9);
             cursor: pointer;
             background-color: transparent;
             position: relative;
             box-sizing: border-box;
         }
         
-        .cell.wall { background-color: #333333; }
+        .cell.wall { background-color: #444; } /* Gris oscuro */
         .cell.enemy { background-color: #ff0000; }
         .cell.bullet { background-color: #ffff00; }
         .cell.health { background-color: #00ff00; }
@@ -162,8 +167,8 @@
             transform: translate(-50%, -50%);
             font-weight: bold;
             color: blue;
-            font-size: 10px;
-            z-index: 2;
+            font-size: 12px;
+            z-index: 10;
         }
         
         .action-btns {
@@ -372,7 +377,7 @@
                         cell.style.width = CELL_SIZE + 'px';
                         cell.style.height = CELL_SIZE + 'px';
                         
-                        // Marcar celdas de borde pero hacerlas transparentes
+                        // Marcamos celdas de borde
                         if (x === 0 || x === MAP_SIZE - 1 || y === 0 || y === MAP_SIZE - 1) {
                             cell.classList.add('border-wall');
                         }
@@ -389,6 +394,9 @@
                             playerLabel.textContent = 'P';
                             cell.appendChild(playerLabel);
                             playerCell = cell;
+                            
+                            // Deshabilitar eventos para la celda del jugador
+                            cell.style.pointerEvents = 'none';
                         } else if (!(x === 0 || x === MAP_SIZE - 1 || y === 0 || y === MAP_SIZE - 1)) {
                             cell.addEventListener('mousedown', handleCellMouseDown);
                             cell.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -398,16 +406,264 @@
                     }
                 }
                 
+                // Centrar vista en la posición del jugador al inicio
+                translateX = -(PLAYER_X * CELL_SIZE - mapContainer.clientWidth / 2);
+                translateY = -(PLAYER_Y * CELL_SIZE - mapContainer.clientHeight / 2);
+                
+                // Limitar el movimiento
+                const maxX = mapContainer.clientWidth - mapGrid.clientWidth;
+                const maxY = mapContainer.clientHeight - mapGrid.clientHeight;
+                
+                translateX = Math.min(0, Math.max(maxX, translateX));
+                translateY = Math.min(0, Math.max(maxY, translateY));
+                
+                updateGridPosition();
+                
                 mapContainer.addEventListener('mousemove', handleMove);
                 mapContainer.addEventListener('mouseup', handleEnd);
                 mapContainer.addEventListener('mouseleave', handleEnd);
                 mapContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
                 mapContainer.addEventListener('touchend', handleEnd);
+            }
+            
+            function selectTool(toolType) {
+                if (toolType === 'move') {
+                    isMoving = !isMoving;
+                    document.body.style.touchAction = isMoving ? 'pan-y pan-x' : 'none';
+                } else {
+                    isMoving = false;
+                    document.body.style.touchAction = 'none';
+                    selectedTool = parseInt(toolType);
+                }
+                
+                toolButtons.forEach(btn => {
+                    btn.classList.toggle('selected', 
+                        (btn.dataset.type === toolType && (toolType !== 'move' || isMoving)) ||
+                        (btn.dataset.type === 'move' && isMoving)
+                    );
+                });
+            }
+            
+            function handleCellMouseDown(e) {
+                if (isMoving) return;
+                e.preventDefault();
+                isDrawing = true;
+                draw(e);
+                
+                document.addEventListener('mousemove', draw);
+                document.addEventListener('mouseup', stopDrawing);
+            }
+            
+            function handleTouchStart(e) {
+                if (isMoving) {
+                    const touch = e.touches[0];
+                    startX = touch.clientX - translateX;
+                    startY = touch.clientY - translateY;
+                    return;
+                }
+                
+                e.preventDefault();
+                const cell = e.target.closest('.cell');
+                if (cell && cell !== playerCell && !cell.classList.contains('border-wall')) {
+                    isDrawing = true;
+                    lastCell = cell;
+                    draw({ target: cell });
+                }
+            }
+            
+            function handleTouchMove(e) {
+                if (!isMoving) {
+                    if (!isDrawing) return;
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const cell = document.elementFromPoint(touch.clientX, touch.clientY);
+                    
+                    if (cell && cell.classList.contains('cell') && cell !== lastCell && 
+                        cell !== playerCell && !cell.classList.contains('border-wall')) {
+                        lastCell = cell;
+                        draw({ target: cell });
+                    }
+                    return;
+                }
+                
+                e.preventDefault();
+                const touch = e.touches[0];
+                translateX = touch.clientX - startX;
+                translateY = touch.clientY - startY;
+                
+                const maxX = mapContainer.clientWidth - mapGrid.clientWidth;
+                const maxY = mapContainer.clientHeight - mapGrid.clientHeight;
+                
+                translateX = Math.min(0, Math.max(maxX, translateX));
+                translateY = Math.min(0, Math.max(maxY, translateY));
                 
                 updateGridPosition();
             }
             
-            // [Resto del código JavaScript permanece igual...]
+            function handleMove(e) {
+                if (!isMoving || !isDrawing) return;
+                
+                e.preventDefault();
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                
+                const maxX = mapContainer.clientWidth - mapGrid.clientWidth;
+                const maxY = mapContainer.clientHeight - mapGrid.clientHeight;
+                
+                translateX = Math.min(0, Math.max(maxX, translateX));
+                translateY = Math.min(0, Math.max(maxY, translateY));
+                
+                updateGridPosition();
+            }
+            
+            function handleEnd() {
+                isDrawing = false;
+                lastCell = null;
+                document.removeEventListener('mousemove', draw);
+                document.removeEventListener('mouseup', stopDrawing);
+            }
+            
+            function draw(e) {
+                if (!isDrawing || isMoving) return;
+                
+                const cell = e.target.closest('.cell');
+                if (cell && cell !== playerCell && !cell.classList.contains('border-wall')) {
+                    const x = parseInt(cell.dataset.x);
+                    const y = parseInt(cell.dataset.y);
+                    
+                    map[y][x] = selectedTool;
+                    updateCellAppearance(cell, selectedTool);
+                }
+            }
+            
+            function updateCellAppearance(cell, value) {
+                cell.className = 'cell';
+                cell.querySelector('.cell-type-label').textContent = value > 0 ? value : '';
+                
+                if (value !== 0) {
+                    cell.classList.add(getCellClass(value));
+                }
+            }
+            
+            function stopDrawing() {
+                isDrawing = false;
+                lastCell = null;
+            }
+            
+            function getCellClass(value) {
+                const classes = {
+                    1: 'wall',
+                    2: 'enemy',
+                    3: 'bullet',
+                    4: 'health'
+                };
+                return classes[value] || '';
+            }
+            
+            function updateGridPosition() {
+                mapGrid.style.transform = `translate(${translateX}px, ${translateY}px)`;
+            }
+            
+            clearBtn.addEventListener('click', function() {
+                if (confirm('¿Limpiar todo el mapa?')) {
+                    // Limpiar todo excepto bordes y posición del jugador
+                    for (let y = 0; y < MAP_SIZE; y++) {
+                        for (let x = 0; x < MAP_SIZE; x++) {
+                            if (!(x === 0 || x === MAP_SIZE - 1 || y === 0 || y === MAP_SIZE - 1 || 
+                                 (x === PLAYER_X && y === PLAYER_Y))) {
+                                map[y][x] = 0;
+                            }
+                        }
+                    }
+                    
+                    document.querySelectorAll('.cell').forEach(cell => {
+                        const x = parseInt(cell.dataset.x);
+                        const y = parseInt(cell.dataset.y);
+                        
+                        if (!(x === 0 || x === MAP_SIZE - 1 || y === 0 || y === MAP_SIZE - 1 || 
+                             (x === PLAYER_X && y === PLAYER_Y))) {
+                            cell.className = 'cell';
+                            cell.querySelector('.cell-type-label').textContent = '';
+                        }
+                    });
+                }
+            });
+            
+            exportBtn.addEventListener('click', function() {
+                try {
+                    let mapText = 'const map = [\n';
+                    
+                    for (let y = 0; y < MAP_SIZE; y++) {
+                        mapText += '  [';
+                        for (let x = 0; x < MAP_SIZE; x++) {
+                            const value = (x === PLAYER_X && y === PLAYER_Y) ? 0 : map[y][x];
+                            mapText += value;
+                            if (x < MAP_SIZE - 1) mapText += ', ';
+                        }
+                        mapText += ']';
+                        if (y < MAP_SIZE - 1) mapText += ',';
+                        mapText += '\n';
+                    }
+                    
+                    mapText += '];';
+                    
+                    try {
+                        const blob = new Blob([mapText], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'mapa_raycast.txt';
+                        
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        let downloadSuccess = false;
+                        a.addEventListener('click', () => {
+                            downloadSuccess = true;
+                        });
+                        
+                        setTimeout(() => {
+                            if (!downloadSuccess) {
+                                showExportModal(mapText);
+                            }
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }, 500);
+                        
+                    } catch (e) {
+                        showExportModal(mapText);
+                    }
+                    
+                } catch (error) {
+                    alert('Error al exportar: ' + error.message);
+                }
+            });
+            
+            function showExportModal(content) {
+                const modal = document.getElementById('export-modal');
+                const exportContent = document.getElementById('export-content');
+                exportContent.value = content;
+                modal.style.display = 'flex';
+            }
+            
+            window.copyExportContent = function() {
+                const exportContent = document.getElementById('export-content');
+                exportContent.select();
+                try {
+                    document.execCommand('copy');
+                    alert('Contenido copiado al portapapeles');
+                } catch (err) {
+                    alert('No se pudo copiar automáticamente. Selecciona y copia manualmente.');
+                }
+            };
+            
+            document.getElementById('close-modal').addEventListener('click', function() {
+                document.getElementById('export-modal').style.display = 'none';
+            });
+            
+            toolButtons.forEach(btn => {
+                btn.addEventListener('click', () => selectTool(btn.dataset.type));
+            });
             
             initializeMap();
         });
