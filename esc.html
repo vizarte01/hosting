@@ -95,34 +95,33 @@
         .health { background-color: #00ff00; }
         
         .player {
-    background-color: rgba(0,0,0,0.9);
-    background-size: 20px 20px;
-    border: 10px solid blue;
-    z-index: 5;
-    position: center;
-}
+            background-color: rgba(0,0,0,0.9);
+            background-size: 20px 20px;
+            border: 10px solid blue;
+            z-index: 5;
+            position: center;
+        }
 
-.player::before {
-    content: "";
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background-color: blue;
-    border-radius: 50%;
-  
-}
+        .player::before {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: blue;
+            border-radius: 50%;
+        }
 
-.player-label {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-weight: bold;
-    color: white; /* Cambiado a blanco para mejor contraste */
-    font-size: 16px;
-    z-index: 10;
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.5); /* Añadido sombra para mejor legibilidad */
-}
+        .player-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            color: white;
+            font-size: 16px;
+            z-index: 10;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+        }
         
         .border-wall { 
             opacity: 0;
@@ -148,10 +147,10 @@
         
         .map-grid {
             display: grid;
-            grid-template-columns: repeat(65, 20px);
-            grid-template-rows: repeat(64, 20px);
-            width: 2560px;
-            height: 2560px;
+            grid-template-columns: repeat(30, 20px);
+            grid-template-rows: repeat(30, 20px);
+            width: 600px;
+            height: 600px;
             background-image: 
                 linear-gradient(rgba(0, 0, 0, 0.2) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0, 0, 0, 0.2) 1px, transparent 1px);
@@ -168,7 +167,7 @@
             box-sizing: border-box;
         }
         
-        .cell.wall { background-color: #444444; } /* Gris oscuro */
+        .cell.wall { background-color: #444444; }
         .cell.enemy { background-color: #ff0000; }
         .cell.bullet { background-color: #ffff00; }
         .cell.health { background-color: #00ff00; }
@@ -181,8 +180,6 @@
             color: rgba(255, 255, 255, 0.7);
             text-shadow: 1px 1px 1px #000;
         }
-        
-        
         
         .action-btns {
             display: flex;
@@ -348,7 +345,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const MAP_SIZE = 64;
+            const MAP_SIZE = 30;
             const CELL_SIZE = 20;
             const PLAYER_X = 2;
             const PLAYER_Y = 2;
@@ -390,7 +387,6 @@
                         cell.style.width = CELL_SIZE + 'px';
                         cell.style.height = CELL_SIZE + 'px';
                         
-                        // Marcamos celdas de borde
                         if (x === 0 || x === MAP_SIZE - 1 || y === 0 || y === MAP_SIZE - 1) {
                             cell.classList.add('border-wall');
                         }
@@ -399,7 +395,6 @@
                         label.className = 'cell-type-label';
                         cell.appendChild(label);
                         
-                        // Posición del jugador (asegurarse que no está en el borde)
                         if (x === PLAYER_X && y === PLAYER_Y) {
                             cell.classList.add('player');
                             const playerLabel = document.createElement('div');
@@ -407,8 +402,6 @@
                             playerLabel.textContent = 'P';
                             cell.appendChild(playerLabel);
                             playerCell = cell;
-                            
-                            // Deshabilitar eventos para la celda del jugador
                             cell.style.pointerEvents = 'none';
                         } else if (!(x === 0 || x === MAP_SIZE - 1 || y === 0 || y === MAP_SIZE - 1)) {
                             cell.addEventListener('mousedown', handleCellMouseDown);
@@ -419,11 +412,9 @@
                     }
                 }
                 
-                // Centrar vista en la posición del jugador al inicio
                 translateX = -(PLAYER_X * CELL_SIZE - mapContainer.clientWidth / 2);
                 translateY = -(PLAYER_Y * CELL_SIZE - mapContainer.clientHeight / 2);
                 
-                // Limitar el movimiento
                 const maxX = mapContainer.clientWidth - mapGrid.clientWidth;
                 const maxY = mapContainer.clientHeight - mapGrid.clientHeight;
                 
@@ -579,7 +570,6 @@
             
             clearBtn.addEventListener('click', function() {
                 if (confirm('¿Limpiar todo el mapa?')) {
-                    // Limpiar todo excepto bordes y posición del jugador
                     for (let y = 0; y < MAP_SIZE; y++) {
                         for (let x = 0; x < MAP_SIZE; x++) {
                             if (!(x === 0 || x === MAP_SIZE - 1 || y === 0 || y === MAP_SIZE - 1 || 
